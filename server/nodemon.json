@@ -1,0 +1,7 @@
+{
+  "watch": ["src"],
+  "ignore": ["db/**/*"],
+  "env":  {
+    "MODE_ENV": "development"
+  }
+}

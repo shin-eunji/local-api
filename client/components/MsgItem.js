@@ -23,8 +23,8 @@ const MsgItem = ({id, userId, timestamp, text, onUpdate, isEditing, startEdit, o
     }
 
     <div className="messages__buttons">
-      <button onCLick={startEdit}>수정</button>
-      <button onCLick={onDelete}>삭제</button>
+      <button onClick={startEdit}>수정</button>
+      <button onClick={onDelete}>삭제</button>
     </div>
   </li>
 )
