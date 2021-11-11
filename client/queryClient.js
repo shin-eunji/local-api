@@ -1,16 +1,28 @@
-import axios from 'axios'
-import {request} from "graphql-request";
+import { request } from 'graphql-request'
 const URL = 'http://localhost:8000/graphql'
 
-axios.defaults.baseURL = 'http://localhost:8000'
+export const fetcher = (query, variables = {}) => request(URL, query, variables)
 
-const fetcher
+export const QueryKeys = {
+  MESSAGES: 'MESSAGES',
+  MESSAGE: 'MESSAGE',
+  USERS: 'USERS',
+  USER: 'USER',
+}
 
-/*
-get: axios.get(url[, config])
-delete: axios.delete(url, data[, config])
-post: axios.post(url[, config])
-update: axios.put(url, data[, config])
-* */
+export const findTargetMsgIndex = (pages, id) => {
+  let msgIndex = -1
+  const pageIndex = pages.findIndex(({ messages }) => {
+    msgIndex = messages.findIndex(msg => msg.id === id)
+    if (msgIndex > -1) {
+      return true
+    }
+    return false
+  })
+  return { pageIndex, msgIndex }
+}
 
-export default queryClient;
+export const getNewMessages = old => ({
+  pageParams: old.pageParams,
+  pages: old.pages.map(({ messages }) => ({ messages: [...messages] })),
+})

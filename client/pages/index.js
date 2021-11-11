@@ -1,18 +1,19 @@
 import MsgList from "../components/MsgList";
-import queryClient from "../queryClient";
+import { fetcher } from "../queryClient";
+import {GET_MESSAGES} from "../graphql/messages";
 
-const Home = ({ smsgs, users }) => (
+const Home = ({ smsgs }) => (
   <>
     <h1>SIMPLE HOME</h1>
-    <MsgList smsgs={smsgs} users={users} />
+    <MsgList smsgs={smsgs} />
   </>
 )
 
 export const getServerSideProps = async () => {
-  const smsgs = await queryClient('get', '/messages')
-  const users = await queryClient('get', '/users')
+  const { messages: smsgs } = await fetcher(GET_MESSAGES)
+
   return {
-    props: { smsgs, users },
+    props: { smsgs },
   }
 }
 

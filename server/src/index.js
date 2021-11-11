@@ -1,8 +1,8 @@
 import express from 'express';
-import { ApolloServer } from 'apollo-server-express';
-import resolvers from './resolvers/index.js';
-import schema from './schema/index.js';
-import { readDB } from './dbController.js';
+import { ApolloServer } from 'apollo-server-express'
+import resolvers from './resolvers/index.js'
+import schema from './schema/index.js'
+import { readDB } from './dbController.js'
 
 // GraphQL
 const server = new ApolloServer({
@@ -11,9 +11,9 @@ const server = new ApolloServer({
   context: {
     db: {
       messages: readDB('messages'),
-      users: readDB('users')
-    }
-  }
+      users: readDB('users'),
+    },
+  },
 })
 
 const app = express()
