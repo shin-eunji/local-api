@@ -1,53 +1,44 @@
+import React, {useEffect, useRef, useState} from "react";
 import MsgItem from "./MsgItem";
 import MsgInput from "./MsgInput";
-import {useState} from "react";
+import {useRouter} from 'next/router';
+import queryClient from '../queryClient.js'
+import useInfiniteScroll from "../hooks/useInfiniteScroll";
 
-const UserIds = ['roy', 'jay'];
-
-const getRandomUserId = () => UserIds[Math.round(Math.random())]
-
-const originalMsgs = Array(50).fill(0).map((_, i) => ({
-  id: 50 - i,
-  userId: getRandomUserId(),
-  timestamp: 1234567890123 + i * 1000 * 60,
-  text: `${i + 1} mock text`
-}))
-
-console.log(JSON.stringify(originalMsgs));
-
-const MsgList = () => {
-  const [msgs, setMsgs] = useState(originalMsgs);
+const MsgList = ({smsgs, users}) => {
+  const {query} = useRouter();
+  const [msgs, setMsgs] = useState(smsgs);
   const [editingId, setEditingId] = useState(null);
+  const [hasNext, setHasNext] = useState(true)
+  const fetchMoreEl = useRef(null)
+  const intersecting = useInfiniteScroll(fetchMoreEl)
+  const userId = query.userId || query.userid || '';
 
-  const onCreate = text => {
-      const newMsg = {
-        id: msgs.length,
-        userId: getRandomUserId(),
-        timestamp: Date.now(),
-        text: `${msgs.length + 1} ${text}`
-      }
-      setMsgs(msgs => ([newMsg, ...msgs]))
+  const onCreate = async text => {
+    const newMsg = await queryClient('post', '/messages', { text, userId })
+    if (!newMsg) throw Error('something wrong')
+    setMsgs(msgs => [newMsg, ...msgs])
   }
 
-  const onUpdate = (text, id) => {
+  const onUpdate = async (text, id) => {
+    const newMsg = await queryClient('put', `/messages/${id}`, { text, userId })
+    if(!newMsg) throw Error("error");
     setMsgs(msgs => {
       const targetIndex = msgs.findIndex(msg => msg.id === id)
       if (targetIndex < 0) {
         return msgs
       }
       const newMsgs = [...msgs]
-      newMsgs.splice(targetIndex, 1, {
-        ...msgs[targetIndex],
-        text
-      })
+      newMsgs.splice(targetIndex, 1, newMsg)
       return newMsgs
     })
     doneEdit()
   }
 
-  const onDelete = (id) => {
+  const onDelete = async (id) => {
+    const receviedId = await queryClient('delete', `/messages/${id}`, { params: userId })
     setMsgs(msgs => {
-      const targetIndex = msgs.findIndex(msg => msg.id === id)
+      const targetIndex = msgs.findIndex(msg => msg.id === receviedId + '')
       if (targetIndex < 0) {
         return msgs
       }
@@ -59,14 +50,28 @@ const MsgList = () => {
 
   const doneEdit = () => setEditingId(null)
 
+  const getMessages = async () => {
+    const newMsgs = await queryClient('get', '/messages', { params: { cursor: msgs[msgs.length - 1]?.id || '' } })
+    if (newMsgs.length === 0) {
+      setHasNext(false)
+      return
+    }
+    setMsgs(msgs => [...msgs, ...newMsgs])
+  }
+
+  useEffect(() => {
+    if (intersecting && hasNext) getMessages()
+  }, [intersecting])
+
   return (
     <>
-      <MsgInput mutate={onCreate} />
+      {userId && <MsgInput mutate={onCreate} />}
       <ul className="messages">
         {
-          msgs.map(x => <MsgItem key={x.id} {...x} onUpdate={onUpdate} onDelete={() => onDelete(x.id)} startEdit={() => setEditingId(x.id)} isEditing={editingId === x.id} />)
+          msgs.map(x => <MsgItem key={x.id} {...x} onUpdate={onUpdate} onDelete={() => onDelete(x.id)} startEdit={() => setEditingId(x.id)} isEditing={editingId === x.id} myId={userId} user={users[x.userId]} />)
         }
       </ul>
+      <div ref={fetchMoreEl} />
     </>
   )
 }

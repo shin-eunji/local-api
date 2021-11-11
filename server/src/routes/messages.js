@@ -8,25 +8,31 @@ const messagesRoute = [
   { // GET MESSAGES
     method: 'get',
     route: '/messages',
-    handler: (req, res) => {
+    handler: ({query: {cursor = ''}}, res) => {
       const msgs = getMsgs()
-      res.send(msgs)
+      const fromIndex = msgs.findIndex(msg => msg.id === cursor) + 1
+      res.send(msgs.slice(fromIndex, fromIndex + 15))
     }
   },
   { // CREATE MESSAGES
     method: 'post',
     route: '/messages',
     handler: ({ body }, res) => {
-      const msgs = getMsgs()
-      const newMsg = {
-        id: v4(),
-        text: body.text,
-        userId: body.userId,
-        timestamp: Date.now()
+      try {
+        if (!body.userId) throw Error('no userId')
+        const msgs = getMsgs()
+        const newMsg = {
+          id: v4(),
+          text: body.text,
+          userId: body.userId,
+          timestamp: Date.now(),
+        }
+        msgs.unshift(newMsg)
+        setMsgs(msgs)
+        res.send(newMsg)
+      } catch (err) {
+        res.status(500).send({ error: err })
       }
-      msgs.unshift(newMsg)
-      setMsgs(msgs)
-      res.send(newMsg)
     }
   },
   { // GET MESSAGE
@@ -64,12 +70,12 @@ const messagesRoute = [
   { // DELETE MESSAGES
     method: 'delete',
     route: '/messages/:id',
-    handler: ({ body, params: { id } }, res) => {
+    handler: ({ params: { id }, query: { userId } }, res) => {
       try {
         const msgs = getMsgs()
         const targetIndex = msgs.findIndex(msg => msg.id === id)
         if(targetIndex < 0) throw '메시지가 없습니다.'
-        if(msgs[targetIndex].userId !== body.userId) throw '사용자가 다릅니다.'
+        if (msgs[targetIndex].userId !== body.userId) throw '사용자가 다릅니다.'
 
         msgs.splice(targetIndex, 1)
         setMsgs(msgs)
